@@ -1,17 +1,14 @@
-# Load necessary libraries
+install.packages("leaflet")
+install.packages("sf")
 library(shiny)
 library(shinydashboard)
+library(leaflet)
+library(sf)
 library(dplyr)
-library(ggplot2)
 
-# Read the data from the CSV file
-merged_data <- read.csv("merged_data.csv", stringsAsFactors = FALSE)
+wildfire_data <- read.csv("/Users/samirdeo/INFO Project 201/Stuff R/shiny_ready.csv")
 
-# Aggregate population and acres burned by year
-aggregated_data <- merged_data %>%
-  group_by(Year) %>%
-  summarise(Total_Population = sum(Estimated.Population, na.rm = TRUE),
-            Total_Acres_Burned = sum(AcresBurned, na.rm = TRUE))
+counties_shape <- st_read("/Users/samirdeo/INFO Project 201/Stuff R/CA_Counties")
 
 # Define UI
 ui <- dashboardPage(
@@ -42,16 +39,14 @@ ui <- dashboardPage(
       ),
       tabItem(tabName = "question2",
               h2("Question 2: Compare wildfire data to GDP data across the world"),
-              # Line chart for Question 2
-              plotOutput("line_chart")
+              # Add your chart here
+              leafletOutput("map"),
+              uiOutput("CountyFireDetails")
       ),
       tabItem(tabName = "question3",
               h2("Question 3: Compare wildfire data across the world over time within past (20) amount of years"),
-              # Bar chart for Question 3
-              checkboxGroupInput("selected_years", "Select years to display:", 
-                                 choices = sort(unique(merged_data$Year)), 
-                                 selected = sort(unique(merged_data$Year))),
-              plotOutput("bar_chart")
+              # Add your charts here
+              p("Add your charts here")
       ),
       tabItem(tabName = "key_takeaways",
               h2("Key Takeaways"),
@@ -63,36 +58,61 @@ ui <- dashboardPage(
 
 # Define server logic
 server <- function(input, output) {
-  # Output: Line chart for Question 2
-  output$line_chart <- renderPlot({
-    # Aggregate population and acres burned by year for Question 2
-    aggregated_data_q2 <- aggregated_data
-    
-    ggplot(aggregated_data_q2, aes(x = Year)) +
-      geom_line(aes(y = Total_Population, color = "Population")) +
-      geom_line(aes(y = Total_Acres_Burned * 100, color = "Acres Burned (x100)")) +
-      labs(title = "Population and Acres (x100 for scaling) Burned by Year",
-           x = "Year",
-           y = "Count",
-           color = "Legend") +
-      scale_color_manual(values = c("Population" = "blue", "Acres Burned (x100)" = "red"))
+  # Add server logic here
+  
+  counties_shape <- st_transform(counties_shape, crs = 4326)
+  
+  output$map <- renderLeaflet({
+    leaflet(counties_shape) %>%
+      addProviderTiles(providers$Stamen.TonerLite) %>%
+      addPolygons(fillColor = ~ifelse(NAME %in% wildfire_data$County, "red", "grey"),
+                  fillOpacity = 0.8,
+                  color = "black",
+                  weight = 1,
+                  highlightOptions = highlightOptions(weight = 2,
+                                                      color = "green",
+                                                      bringToFront = TRUE),
+                  label = ~NAME,
+                  layerId = ~NAME)
   })
   
-  # Output: Bar chart for Question 3
-  output$bar_chart <- renderPlot({
-    # Aggregate population and acres burned by selected years for Question 3
-    selected_data <- merged_data %>%
-      filter(Year %in% input$selected_years) %>%
-      group_by(Year) %>%
-      summarise(Total_Acres_Burned = sum(AcresBurned, na.rm = TRUE))
+  observeEvent(input$map_shape_click, {
+    click <- input$map_shape_click
     
-    ggplot(selected_data, aes(x = as.factor(Year), y = Total_Acres_Burned)) +
-      geom_bar(stat = "identity", fill = "skyblue") +
-      labs(title = "Total Acres Burned by Year",
-           x = "Year",
-           y = "Total Acres Burned")
+    output$CountyFireDetails <- renderUI({
+      
+      county_data <- wildfire_data %>%
+        filter(tolower(County) == tolower(click$id))
+      
+      if (nrow(county_data) > 0) {
+        tagList(
+          h4("Selected County: ", click$id),
+          selectInput("chosenFire", "Choose fire",
+                        choices = county_data$Year),
+          verbatimTextOutput("fireDetails")
+        )
+      } else {
+        h4("No data available for ", click$id)
+      }
+    })
   })
-}
+  
+  output$fireDetails <- renderText({
+    req(input$chosenFire)
+    if(!is.null(input$chosenFire)) {
+      selectedDetails <- wildfire_data %>%
+        filter(Year == input$chosenFire) %>%
+        select(Year, AcresBurned, Revenue.Before, Revenue.After) %>%
+        head(1) %>%
+        paste(collapse = ", ")
+      
+      paste("Info: ", selectedDetails)
+    }
+  })
+  
+  
+ }
+
 
 # Run the application
 shinyApp(ui = ui, server = server)
