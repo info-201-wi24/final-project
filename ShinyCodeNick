@@ -47,11 +47,12 @@ ui <- dashboardPage(
       ),
       tabItem(tabName = "question3",
               h2("Question 3: Compare wildfire data across California as a whole between 2013 and 2019"),
-              # Bar chart for Question 3
-              checkboxGroupInput("selected_years", "Select years to display:", 
-                                 choices = sort(unique(merged_data$Year)), 
-                                 selected = sort(unique(merged_data$Year))),
-              plotOutput("bar_chart")
+              fluidRow(
+                column(3, checkboxGroupInput("selected_years", "Select years to display:", 
+                                             choices = sort(unique(merged_data$Year)), 
+                                             selected = sort(unique(merged_data$Year)))),
+                column(9, plotOutput("bar_chart"))
+              )
       ),
       tabItem(tabName = "key_takeaways",
               h2("Key Takeaways"),
