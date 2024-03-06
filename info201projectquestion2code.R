@@ -11,10 +11,6 @@ aggregated_data <- merged_data %>%
   summarise(Total_Population = sum(Estimated.Population, na.rm = TRUE),
             Total_Acres_Burned = sum(AcresBurned, na.rm = TRUE))
 
-# Load necessary libraries
-library(ggplot2)
-
-
 
 # Line chart with two lines (Acres Burned multiplied by 100 for scaling purposes)
 ggplot(aggregated_data, aes(x = Year)) +
