@@ -41,12 +41,12 @@ ui <- dashboardPage(
               p("Add your chart here")
       ),
       tabItem(tabName = "question2",
-              h2("Question 2: Compare wildfire data to GDP data across the world"),
+              h2("Question 2: Are the fires causing people to move out/less people move in California"),
               # Line chart for Question 2
               plotOutput("line_chart")
       ),
       tabItem(tabName = "question3",
-              h2("Question 3: Compare wildfire data across the world over time within past (20) amount of years"),
+              h2("Question 3: Compare wildfire data across California as a whole between 2013 and 2019"),
               # Bar chart for Question 3
               checkboxGroupInput("selected_years", "Select years to display:", 
                                  choices = sort(unique(merged_data$Year)), 
