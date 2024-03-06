@@ -1,5 +1,17 @@
+# Load necessary libraries
 library(shiny)
 library(shinydashboard)
+library(dplyr)
+library(ggplot2)
+
+# Read the data from the CSV file
+merged_data <- read.csv("merged_data.csv", stringsAsFactors = FALSE)
+
+# Aggregate population and acres burned by year
+aggregated_data <- merged_data %>%
+  group_by(Year) %>%
+  summarise(Total_Population = sum(Estimated.Population, na.rm = TRUE),
+            Total_Acres_Burned = sum(AcresBurned, na.rm = TRUE))
 
 # Define UI
 ui <- dashboardPage(
@@ -36,6 +48,9 @@ ui <- dashboardPage(
       tabItem(tabName = "question3",
               h2("Question 3: Compare wildfire data across the world over time within past (20) amount of years"),
               # Bar chart for Question 3
+              checkboxGroupInput("selected_years", "Select years to display:", 
+                                 choices = sort(unique(merged_data$Year)), 
+                                 selected = sort(unique(merged_data$Year))),
               plotOutput("bar_chart")
       ),
       tabItem(tabName = "key_takeaways",
@@ -48,20 +63,10 @@ ui <- dashboardPage(
 
 # Define server logic
 server <- function(input, output) {
-  # Load necessary libraries
-  library(dplyr)
-  library(ggplot2)
-  
-  # Read the data from the CSV file
-  merged_data <- read.csv("merged_data.csv", stringsAsFactors = FALSE)
-  
   # Output: Line chart for Question 2
   output$line_chart <- renderPlot({
     # Aggregate population and acres burned by year for Question 2
-    aggregated_data_q2 <- merged_data %>%
-      group_by(Year) %>%
-      summarise(Total_Population = sum(Estimated.Population, na.rm = TRUE),
-                Total_Acres_Burned = sum(AcresBurned, na.rm = TRUE))
+    aggregated_data_q2 <- aggregated_data
     
     ggplot(aggregated_data_q2, aes(x = Year)) +
       geom_line(aes(y = Total_Population, color = "Population")) +
@@ -75,12 +80,13 @@ server <- function(input, output) {
   
   # Output: Bar chart for Question 3
   output$bar_chart <- renderPlot({
-    # Aggregate population and acres burned by year for Question 3
-    aggregated_data <- merged_data %>%
+    # Aggregate population and acres burned by selected years for Question 3
+    selected_data <- merged_data %>%
+      filter(Year %in% input$selected_years) %>%
       group_by(Year) %>%
       summarise(Total_Acres_Burned = sum(AcresBurned, na.rm = TRUE))
     
-    ggplot(aggregated_data, aes(x = as.factor(Year), y = Total_Acres_Burned)) +
+    ggplot(selected_data, aes(x = as.factor(Year), y = Total_Acres_Burned)) +
       geom_bar(stat = "identity", fill = "skyblue") +
       labs(title = "Total Acres Burned by Year",
            x = "Year",
