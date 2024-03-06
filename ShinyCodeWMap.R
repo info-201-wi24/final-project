@@ -70,9 +70,8 @@ ui <- dashboardPage(
 
 # Define server logic
 server <- function(input, output) {
-  # Add server logic here
   
-  new_map <- st_transform(new_map, crs = 4326)
+  #new_map <- st_transform(new_map, crs = 4326)
   
   output$map <- renderLeaflet({
   leaflet(new_county) %>%
@@ -118,7 +117,6 @@ server <- function(input, output) {
             head(1)
       
       if (nrow(selectedDetails) > 0) {
-        # Construct the information string with labels
         fire_string <- paste("Info:\n",
                              "Year:", selectedDetails$Year, "\n",
                              "Revenue Before Fire in USD:", selectedDetails$Revenue.Before, "\n",
